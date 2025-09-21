@@ -5,6 +5,8 @@
 set -e
 
 echo "=> Backup started at $(date +'%Y-%m-%d %H:%M:%S')"
+echo "Source URI: ${SOURCE_MONGO_URI}"
+echo "Destination URI: ${DESTINATION_MONGO_URI}"
 
 # Use mongodump to get data from the source URI and pipe it directly to mongorestore.
 # --archive: Allows streaming data without saving a temporary file to disk.
