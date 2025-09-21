@@ -5,6 +5,9 @@ FROM mongo:latest
 # Using --no-install-recommends makes the image smaller
 RUN apt-get update && apt-get install -y --no-install-recommends cron && rm -rf /var/lib/apt/lists/*
 
+# Give execution rights on the cron job and create log file
+RUN touch /var/log/cron.log
+
 # Create a directory for our scripts
 WORKDIR /app
 

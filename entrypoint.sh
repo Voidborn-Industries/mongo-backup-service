@@ -10,17 +10,47 @@ if [ -z "${SOURCE_MONGO_URI}" ] || [ -z "${DESTINATION_MONGO_URI}" ] || [ -z "${
   exit 1
 fi
 
+# Create environment file for cron to use
+echo "SOURCE_MONGO_URI=${SOURCE_MONGO_URI}" > /app/backup.env
+echo "DESTINATION_MONGO_URI=${DESTINATION_MONGO_URI}" >> /app/backup.env
+echo "BACKUP_SCHEDULE=${BACKUP_SCHEDULE}" >> /app/backup.env
+
+# Create a wrapper script that sources the environment
+cat > /app/backup_wrapper.sh << 'EOF'
+#!/bin/sh
+# Load environment variables
+. /app/backup.env
+# Run the backup script
+/app/backup.sh >> /var/log/cron.log 2>&1
+EOF
+
+# Make the wrapper script executable
+chmod +x /app/backup_wrapper.sh
+
 # Create a crontab file using the schedule from the environment variable.
-# The '>> /var/log/cron.log 2>&1' part redirects the script's output to a log file
-# inside the container, which you can view with 'docker logs'.
-echo "${BACKUP_SCHEDULE} /app/backup.sh >> /var/log/cron.log 2>&1" > /etc/crontab
+# Note: /etc/crontab format requires: minute hour day month weekday user command
+echo "${BACKUP_SCHEDULE} root /app/backup_wrapper.sh" > /etc/crontab
 
 # Add a required newline to the end of the crontab file.
 echo "" >> /etc/crontab
 
+# Create log directory and file
+mkdir -p /var/log
+touch /var/log/cron.log
+
+# Display the crontab for debugging
 echo "Cron schedule configured: ${BACKUP_SCHEDULE}"
-echo "Container entrypoint initialized. Starting cron..."
+echo "Crontab contents:"
+cat /etc/crontab
+echo ""
+echo "Environment file contents:"
+cat /app/backup.env
+echo ""
+echo "Logs will be written to /var/log/cron.log"
 echo "----------------------------------------------------"
+
+# Start cron and show initial logs
+echo "Starting cron daemon..."
 
 # Execute the command passed to this script (which is `cron -f` from the Dockerfile)
 # This starts the cron daemon in the foreground, keeping the container running.
