@@ -1,25 +1,27 @@
 # Use the official MongoDB image which has the necessary tools
 FROM mongo:latest
 
-# Update package list and install cron
-# Using --no-install-recommends makes the image smaller
-RUN apt-get update && apt-get install -y --no-install-recommends cron && rm -rf /var/lib/apt/lists/*
+# Install Python and pip
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    python3 \
+    python3-pip \
+    python3-venv \
+    && rm -rf /var/lib/apt/lists/*
 
-# Give execution rights on the cron job and create log file
-RUN touch /var/log/cron.log
+# Create log directory
+RUN mkdir -p /var/log && touch /var/log/backup.log
 
 # Create a directory for our scripts
 WORKDIR /app
 
-# Copy the backup and entrypoint scripts into the container
-COPY entrypoint.sh .
-COPY backup.sh .
+# Copy the Python backup service
+COPY backup_service.py .
 
-# Make the scripts executable
-RUN chmod +x entrypoint.sh backup.sh
+# Make the script executable
+RUN chmod +x backup_service.py
 
-# Set the entrypoint to our custom script
-ENTRYPOINT ["/app/entrypoint.sh"]
+# Set the entrypoint to our Python service
+ENTRYPOINT ["python3", "/app/backup_service.py"]
 
-# The command that will be executed by the entrypoint script
-CMD ["cron", "-f"]
+# Default command (can be overridden)
+CMD []
